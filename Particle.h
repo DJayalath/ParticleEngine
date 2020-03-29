@@ -22,7 +22,7 @@ struct ParticleManager
 	Particle ParticlesContainer[MaxParticles];
 	int LastUsedParticle = 0;
 
-    void update(glm::vec2* translations) {
+    void update(glm::vec2* translations, glm::vec3* colours) {
         // Simulate all particles
         int ParticlesCount = 0;
         for (int i = 0; i < MaxParticles; i++) {
@@ -38,6 +38,7 @@ struct ParticleManager
 
                 // Fill the GPU buffer
                 translations[ParticlesCount] = p.position;
+                colours[ParticlesCount] = p.colour;
 
                 //g_particule_position_size_data[4 * ParticlesCount + 3] = p.size;
 

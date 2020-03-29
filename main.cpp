@@ -74,7 +74,8 @@ int main()
 
     ParticleManager particleManager;
 
-    glm::vec2 translations[100];
+    glm::vec2 translations[particleManager.MaxParticles];
+    glm::vec3 colours[particleManager.MaxParticles];
     int index = 0;
     float offset = 0.1f;
     for (int y = -10; y < 10; y += 2)
@@ -87,6 +88,7 @@ int main()
             particleManager.ParticlesContainer[index].life = 1.0f;
             particleManager.ParticlesContainer[index].position = translation;
             particleManager.ParticlesContainer[index].velocity = glm::vec2(0.001, 0);
+            particleManager.ParticlesContainer[index].colour = glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f);
             index++;
             //translations[index++] = translation;
         }
@@ -97,23 +99,29 @@ int main()
 
     // store instance data in an array buffer
     // --------------------------------------
-    unsigned int instanceVBO;
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+    unsigned int instanceTranslationsVBO;
+    glGenBuffers(1, &instanceTranslationsVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.MaxParticles, &translations[0], GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    unsigned int instanceColoursVBO;
+    glGenBuffers(1, &instanceColoursVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float quadVertices[] = {
         // positions     // colors
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-         0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-        -0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
-
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-         0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-         0.05f,  0.05f,  0.0f, 1.0f, 1.0f
+        -0.05f,  0.05f,
+         0.05f, -0.05f,
+        -0.05f, -0.05f,
+        -0.05f,  0.05f,
+         0.05f, -0.05f,
+         0.05f,  0.05f,
     };
 
     unsigned int quadVAO, quadVBO;
@@ -123,12 +131,18 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+
+    // Instance colours
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(1, 1); // tell OpenGL this is an instanced vertex attribute.
+
     // also set instance data
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO); // this attribute comes from a different vertex buffer
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
@@ -163,13 +177,16 @@ int main()
         // Update at 60FPS
         while (deltaTime >= 1.0) {
             // Update translatioons
-            particleManager.update(translations);
+            particleManager.update(translations, colours);
             deltaTime--;
         }
 
         // Send to shader
-        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)* particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // Draw
