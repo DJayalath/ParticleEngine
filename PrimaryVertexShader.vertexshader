@@ -1,12 +1,15 @@
 #version 420 core
 
 // Declare input data
-layout(location = 0) in vec3 vertexPosition_modelspace;
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aOffset;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
 
 void main() {
 	// Output position of the vertex, in clip space : MVP * position
-	gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
+	float scale = 1.2;
+	gl_Position =  vec4(aPos * scale + aOffset, 0.0, 1.0);
 }
