@@ -152,6 +152,8 @@ int main()
     double lastTime = glfwGetTime(), timer = lastTime;
     double deltaTime = 0, nowTime = 0;
 
+    particleManager.ParticlesContainer[56].life = 0.0f;
+
     while (!glfwWindowShouldClose(window))
     {
         // Measure time
@@ -182,12 +184,14 @@ int main()
         }
 
         // Send to shader
-        glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)* particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if (particleManager.ParticlesCount > 0) {
+            glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.MaxParticles, &translations[0], GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
 
         // Draw
         glBindVertexArray(quadVAO);

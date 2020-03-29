@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <algorithm>
 
 struct Particle
 {
@@ -13,6 +14,11 @@ struct Particle
     float size, angle, weight;
 
     float life;
+
+    bool operator<(Particle& that) {
+        // Sort such that dead particles are at the end
+        return this->life > that.life;
+    }
 };
 
 
@@ -21,10 +27,11 @@ struct ParticleManager
 	static const int MaxParticles = 100;
 	Particle ParticlesContainer[MaxParticles];
 	int LastUsedParticle = 0;
+    int ParticlesCount = 0;
 
     void update(glm::vec2* translations, glm::vec3* colours) {
         // Simulate all particles
-        int ParticlesCount = 0;
+        ParticlesCount = 0;
         for (int i = 0; i < MaxParticles; i++) {
 
             Particle& p = ParticlesContainer[i]; // shortcut
@@ -51,6 +58,12 @@ struct ParticleManager
 
             }
         }
+
+        SortParticles();
+    }
+
+    void SortParticles() {
+        std::sort(&ParticlesContainer[0], &ParticlesContainer[MaxParticles]);
     }
 
     // Finds a Particle in ParticlesContainer which isn't used yet.
