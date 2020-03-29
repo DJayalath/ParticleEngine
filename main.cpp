@@ -5,45 +5,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Particle.h"
+
 // Final include
 #include "ShaderLoader.h"
 
+#define WIDTH 1280
+#define HEIGHT 720
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-
-// CPU representation of a particle
-struct Particle {
-    glm::vec3 pos, speed;
-    unsigned char r, g, b, a; // Color
-    float size, angle, weight;
-    float life; // Remaining life of the particle. if < 0 : dead and unused.
-
-};
-
-const int MaxParticles = 100000;
-Particle ParticlesContainer[MaxParticles];
-
-int LastUsedParticle = 0;
-
-// Finds a Particle in ParticlesContainer which isn't used yet.
-// (i.e. life < 0);
-int FindUnusedParticle() {
-
-    for (int i = LastUsedParticle; i < MaxParticles; i++) {
-        if (ParticlesContainer[i].life < 0) {
-            LastUsedParticle = i;
-            return i;
-        }
-    }
-
-    for (int i = 0; i < LastUsedParticle; i++) {
-        if (ParticlesContainer[i].life < 0) {
-            LastUsedParticle = i;
-            return i;
-        }
-    }
-
-    return 0; // All particles are taken, override the first one
-}
 
 int main()
 {
@@ -53,7 +23,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Particle Engine", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Particle Engine", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -68,7 +38,7 @@ int main()
         return EXIT_FAILURE;
     }
 
-    glViewport(0, 0, 1280, 720);
+    glViewport(0, 0, WIDTH, HEIGHT);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -78,20 +48,22 @@ int main()
     // Create and compile our GLSL program from the shaders
     GLuint programID = ShaderLoader::LoadShaders("PrimaryVertexShader.vertexshader", "PrimaryFragmentShader.fragmentshader");
 
-    // Set ortho camera (2D)
-    glm::mat4 Projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f); // In world coordinates
+    // Set ortho camera (2D) - If 1280x720, world space -> x in [-6.4, 6.4], y in [-3.6, 3.6]
+    // EVERYTHING IS CENTERED IN OPENGL
+    float scaled_width = WIDTH / 200.f;
+    float scaled_height = HEIGHT / 200.f;
+    glm::mat4 Projection = glm::ortho(-scaled_width, scaled_width, -scaled_height, scaled_height, 0.0f, 100.0f); // In world coordinates
     // Camera matrix
     glm::mat4 View = glm::lookAt(
         glm::vec3(0, 0, 1), // Camera just behind origin, in World Space
         glm::vec3(0, 0, 0), // and looks at the origin
         glm::vec3(0, 1, 0)  // Head is up (set to 0,-1,0 to look upside-down)
     );
-    // Model matrix : an identity matrix (model will be at the origin)
-    glm::mat4 Model = glm::mat4(1.0f);
+
     // Our ModelViewProjection : multiplication of our 3 matrices
-    glm::mat4 mvp = Projection * View * Model; // Remember, matrix multiplication is the other way around
+    glm::mat4 mvp = Projection * View; // Remember, matrix multiplication is the other way around
     // Handle for MVP uniform
-    GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+    GLuint MatrixID = glGetUniformLocation(programID, "MV");
 
     //glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -99,6 +71,8 @@ int main()
     //GLuint VertexArrayID;
     //glGenVertexArrays(1, &VertexArrayID);
     //glBindVertexArray(VertexArrayID);
+
+    ParticleManager particleManager;
 
     glm::vec2 translations[100];
     int index = 0;
@@ -110,9 +84,16 @@ int main()
             glm::vec2 translation;
             translation.x = (float)x / 10.0f + offset;
             translation.y = (float)y / 10.0f + offset;
-            translations[index++] = translation;
+            particleManager.ParticlesContainer[index].life = 1.0f;
+            particleManager.ParticlesContainer[index].position = translation;
+            particleManager.ParticlesContainer[index].velocity = glm::vec2(0.001, 0);
+            index++;
+            //translations[index++] = translation;
         }
     }
+
+    particleManager.ParticlesContainer[0].position = glm::vec2(-6.4f, 0);
+    particleManager.ParticlesContainer[0].velocity = glm::vec2(0, 0);
 
     // store instance data in an array buffer
     // --------------------------------------
@@ -152,10 +133,19 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
- 
+    // Timing
+    static double limitFPS = 1.0 / 60.0;
+    double lastTime = glfwGetTime(), timer = lastTime;
+    double deltaTime = 0, nowTime = 0;
 
     while (!glfwWindowShouldClose(window))
     {
+        // Measure time
+        nowTime = glfwGetTime();
+        deltaTime += (nowTime - lastTime) / limitFPS;
+        lastTime = nowTime;
+
+
         // Handle exit event
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -170,6 +160,18 @@ int main()
         // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
+        // Update at 60FPS
+        while (deltaTime >= 1.0) {
+            // Update translatioons
+            particleManager.update(translations);
+            deltaTime--;
+        }
+
+        // Send to shader
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
         // Draw
         glBindVertexArray(quadVAO);
         glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
@@ -178,6 +180,11 @@ int main()
         // Swap buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        // - Reset after one second
+        if (glfwGetTime() - timer > 1.0) {
+            timer++;
+        }
     }
 
     glfwTerminate();
