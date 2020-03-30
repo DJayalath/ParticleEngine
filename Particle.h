@@ -20,6 +20,7 @@ public:
     bool hasComponent();
     Component* getComponent();
     void setComponent(Component* component);
+    void removeComponent();
 
 private:
     // No need for scale as all particles are the same! Keep this constant in the shader

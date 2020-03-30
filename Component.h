@@ -9,6 +9,10 @@ class Component : public Entity
 
 public:
 
+	void addChild(Particle* p);
+	void releaseChildren();
+	void update();
+
 private:
 
 	std::vector<Particle*> children;

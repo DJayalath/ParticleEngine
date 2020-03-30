@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "ParticleManager.h"
+#include "Component.h"
 
 // Final include
 #include "ShaderLoader.h"
@@ -76,6 +77,8 @@ int main()
 
     glm::vec2 translations[ParticleManager::MAX_PARTICLES];
     glm::vec3 colours[ParticleManager::MAX_PARTICLES];
+    Component* quadGrid = new Component();
+    quadGrid->setVelocity(glm::vec2(0.001, 0));
     int index = 0;
     float offset = 0.1f;
     for (int y = -10; y < 10; y += 2)
@@ -87,8 +90,10 @@ int main()
             translation.y = (float)y / 10.0f + offset;
             particleManager.getParticles()[index].setLife(1.f);
             particleManager.getParticles()[index].setPosition(translation);
-            particleManager.getParticles()[index].setVelocity(glm::vec2(0.001, 0));
+            //particleManager.getParticles()[index].setVelocity(glm::vec2(0.001, 0));
             particleManager.getParticles()[index].setColour(glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f));
+            // Add particle to component
+            quadGrid->addChild(&particleManager.getParticles()[index]);
             index++;
             //translations[index++] = translation;
         }
@@ -173,7 +178,22 @@ int main()
 
         // Update at 60FPS
         while (deltaTime >= 1.0) {
-            // Update translatioons
+
+            if ((int) nowTime % 5 == 0) {
+                if (quadGrid != nullptr) {
+                    quadGrid->releaseChildren();
+                    delete quadGrid;
+                    quadGrid = nullptr;
+                    std::cout << "Particles released!" << std::endl;
+                }
+            }
+
+            if (quadGrid != nullptr) {
+                // Update components
+                quadGrid->update();
+            }
+
+            // Update particles
             particleManager.update(translations, colours);
             deltaTime--;
         }

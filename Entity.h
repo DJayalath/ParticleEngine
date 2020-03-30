@@ -17,7 +17,7 @@ public:
 	void setAngle(float angle);
 	void setWeight(float weight);
 
-private:
+protected:
 	glm::vec2 position = glm::vec2(0, 0);
 	glm::vec2 velocity = glm::vec2(0, 0);
 

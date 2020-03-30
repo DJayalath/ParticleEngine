@@ -34,3 +34,7 @@ Component* Particle::getComponent() {
 void Particle::setComponent(Component* component) {
 	this->component = component;
 }
+
+void Particle::removeComponent() {
+	this->component = nullptr;
+}

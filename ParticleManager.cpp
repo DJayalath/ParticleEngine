@@ -1,4 +1,5 @@
 #include "ParticleManager.h"
+#include "Component.h"
 
 #include <algorithm>
 
@@ -13,11 +14,23 @@ void ParticleManager::update(glm::vec2* translations, glm::vec3* colours) {
 
             // Simulate simple physics : gravity only, no collisions
             //p.velocity += glm::vec3(0.0f, -9.81f, 0.0f) * (float)delta * 0.5f;
+
+            // a = F / m /=/ m
+            // v = u + at
+            if (p.getWeight() > 0) {
+                p.setVelocity(p.getVelocity() + glm::vec2(0, -0.01));
+            }
             p.setPosition(p.getPosition() + p.getVelocity());
             //ParticlesContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
 
             // Fill the GPU buffer
-            translations[particlesCount] = p.getPosition();
+            if (p.hasComponent()) {
+                translations[particlesCount] = p.getPosition() + p.getComponent()->getPosition();
+            }
+            else {
+                translations[particlesCount] = p.getPosition();
+            }
+
             colours[particlesCount] = p.getColour();
 
             particlesCount++;
