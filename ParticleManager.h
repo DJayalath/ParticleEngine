@@ -10,6 +10,7 @@ public:
 
 	void update(double dt, glm::vec2* translations, glm::vec3* colours);
 	Particle* getParticles();
+	Particle& getUnusedParticle();
 	int getParticlesCount();
 
 private:

@@ -62,21 +62,14 @@ int main()
     );
 
     // Our ModelViewProjection : multiplication of our 3 matrices
-    glm::mat4 mvp = Projection * View; // Remember, matrix multiplication is the other way around
-    // Handle for MVP uniform
-    GLuint MatrixID = glGetUniformLocation(particleShader, "MV");
+    glm::mat4 mv = Projection * View; // Remember, matrix multiplication is the other way around
+    // Handle for MV uniform
+    GLuint mvMatrixID = glGetUniformLocation(particleShader, "MV");
 
-    //glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-
-    // CREATE VAO AND SET AS CURRENT (for the triangle)
-    //GLuint VertexArrayID;
-    //glGenVertexArrays(1, &VertexArrayID);
-    //glBindVertexArray(VertexArrayID);
-
-    ParticleManager particleManager;
-
+    ParticleManager particleManager = ParticleManager();
     glm::vec2 translations[ParticleManager::MAX_PARTICLES];
     glm::vec3 colours[ParticleManager::MAX_PARTICLES];
+
     Component* quadGrid = new Component();
     quadGrid->setVelocity(glm::vec2(0.5, 0));
     int index = 0;
@@ -88,16 +81,33 @@ int main()
             glm::vec2 translation;
             translation.x = (float)x / 10.0f + offset;
             translation.y = (float)y / 10.0f + offset;
-            particleManager.getParticles()[index].setLife(1.f);
-            particleManager.getParticles()[index].setPosition(translation);
-            //particleManager.getParticles()[index].setVelocity(glm::vec2(0.001, 0));
-            particleManager.getParticles()[index].setColour(glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f));
+
+            Particle& p = particleManager.getUnusedParticle();
+            p.setLife(1.f);
+            p.setPosition(translation);
+            p.setColour(glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f));
+
             // Add particle to component
-            quadGrid->addChild(&particleManager.getParticles()[index]);
+            quadGrid->addChild(&p);
             index++;
-            //translations[index++] = translation;
         }
     }
+
+    // TEST CODE
+    // Results:
+    // Particles are exactly 0.1x0.1 in size in worldspace
+    //for (int x = -640; x <= 640; x += 10) {
+    //    Particle& p = particleManager.getUnusedParticle();
+    //    p.setLife(1.f);
+    //    p.setPosition(glm::vec2(x / 100.f, 3.5f));
+    //    p.setColour(glm::vec3(0, 1, 0));
+    //}
+    //for (int x = -640; x <= 640; x += 10) {
+    //    Particle& p = particleManager.getUnusedParticle();
+    //    p.setLife(1.f);
+    //    p.setPosition(glm::vec2(x / 100.f, 3.39f));
+    //    p.setColour(glm::vec3(1, 0, 0));
+    //}
 
     // store instance data in an array buffer
     // --------------------------------------
@@ -175,13 +185,6 @@ int main()
         // Clear
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Use our shader
-        glUseProgram(particleShader);
-
-        // Send our transformation to the currently bound shader, in the "MVP" uniform
-        // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
-
         // Update at fixed FPS -> deterministic physics
         while (accumulator > dt) {
 
@@ -207,20 +210,29 @@ int main()
 
         // TODO: linear interpolation
 
-        // Send to shader
+        // Render particles
         if (particleManager.getParticlesCount() > 0) {
+
+            // Use particle shader
+            glUseProgram(particleShader);
+
+            // Send model * view matrix to shader
+            // Doesn't need to be in loop, but in case future updates involve moving the camera...
+            glUniformMatrix4fv(mvMatrixID, 1, GL_FALSE, &mv[0][0]);
+
+            // Send updated data to shader
             glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.getParticlesCount(), &translations[0], GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.getParticlesCount(), &colours[0], GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
 
-        // Draw
-        glBindVertexArray(quadVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100); // 100 triangles of 6 vertices each
-        glBindVertexArray(0);
+            // Instanced rendering of all particles
+            glBindVertexArray(quadVAO);
+            glDrawArraysInstanced(GL_TRIANGLES, 0, 6, particleManager.getParticlesCount()); // particlesCount triangles of 6 vertices each (a quad)
+            glBindVertexArray(0);
+        }
 
         // Swap buffers
         glfwSwapBuffers(window);

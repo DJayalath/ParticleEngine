@@ -11,7 +11,7 @@ void Component::releaseChildren()
 	for (Particle* p : children) {
 
 		// TEMPORARY. MAKE PARTICLES FALL BY GIVING THEM WEIGHT.
-		p->setWeight(1.f);
+		p->setMass(1.f);
 
 		// Update to make position and velocity independant of parent component
 		p->setPosition(position + p->getPosition());
@@ -27,8 +27,13 @@ void Component::releaseChildren()
 
 void Component::update(double dt)
 {
-	if (weight > 0) {
+	if (mass > 0) {
 		velocity += glm::vec2(0, -0.1) * (float) dt;
 	}
 	position += velocity * (float) dt;
+}
+
+void Component::computeMass()
+{
+	mass = density * children.size();
 }

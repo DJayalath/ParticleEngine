@@ -38,3 +38,11 @@ void Particle::setComponent(Component* component) {
 void Particle::removeComponent() {
 	this->component = nullptr;
 }
+
+AABB Particle::computeAABB()
+{
+	return AABB {
+		position + glm::vec2(-0.05, 0.05),
+		position + glm::vec2(0.05, -0.05),
+	};
+}

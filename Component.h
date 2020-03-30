@@ -12,6 +12,10 @@ public:
 	void addChild(Particle* p);
 	void releaseChildren();
 	void update(double dt);
+	void computeMass();
+
+	// TODO: Override this with actual functionality
+	AABB computeAABB() { return AABB(); }
 
 private:
 

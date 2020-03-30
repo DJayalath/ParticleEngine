@@ -4,7 +4,6 @@
 #include "Entity.h"
 
 class Component;
-
 class Particle : public Entity
 {
 public:
@@ -21,6 +20,8 @@ public:
     Component* getComponent();
     void setComponent(Component* component);
     void removeComponent();
+
+    AABB computeAABB();
 
 private:
     // No need for scale as all particles are the same! Keep this constant in the shader
