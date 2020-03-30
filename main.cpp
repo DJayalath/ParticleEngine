@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Particle.h"
+#include "ParticleManager.h"
 
 // Final include
 #include "ShaderLoader.h"
@@ -46,7 +46,7 @@ int main()
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     // Create and compile our GLSL program from the shaders
-    GLuint programID = ShaderLoader::LoadShaders("PrimaryVertexShader.vertexshader", "PrimaryFragmentShader.fragmentshader");
+    GLuint particleShader = ShaderLoader::LoadShaders("ParticleVS.vertexshader", "ParticleFS.fragmentshader");
 
     // Set ortho camera (2D) - If 1280x720, world space -> x in [-6.4, 6.4], y in [-3.6, 3.6]
     // EVERYTHING IS CENTERED IN OPENGL
@@ -63,7 +63,7 @@ int main()
     // Our ModelViewProjection : multiplication of our 3 matrices
     glm::mat4 mvp = Projection * View; // Remember, matrix multiplication is the other way around
     // Handle for MVP uniform
-    GLuint MatrixID = glGetUniformLocation(programID, "MV");
+    GLuint MatrixID = glGetUniformLocation(particleShader, "MV");
 
     //glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -74,8 +74,8 @@ int main()
 
     ParticleManager particleManager;
 
-    glm::vec2 translations[particleManager.MaxParticles];
-    glm::vec3 colours[particleManager.MaxParticles];
+    glm::vec2 translations[ParticleManager::MAX_PARTICLES];
+    glm::vec3 colours[ParticleManager::MAX_PARTICLES];
     int index = 0;
     float offset = 0.1f;
     for (int y = -10; y < 10; y += 2)
@@ -85,30 +85,27 @@ int main()
             glm::vec2 translation;
             translation.x = (float)x / 10.0f + offset;
             translation.y = (float)y / 10.0f + offset;
-            particleManager.ParticlesContainer[index].life = 1.0f;
-            particleManager.ParticlesContainer[index].position = translation;
-            particleManager.ParticlesContainer[index].velocity = glm::vec2(0.001, 0);
-            particleManager.ParticlesContainer[index].colour = glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f);
+            particleManager.getParticles()[index].setLife(1.f);
+            particleManager.getParticles()[index].setPosition(translation);
+            particleManager.getParticles()[index].setVelocity(glm::vec2(0.001, 0));
+            particleManager.getParticles()[index].setColour(glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f));
             index++;
             //translations[index++] = translation;
         }
     }
-
-    particleManager.ParticlesContainer[0].position = glm::vec2(-6.4f, 0);
-    particleManager.ParticlesContainer[0].velocity = glm::vec2(0, 0);
 
     // store instance data in an array buffer
     // --------------------------------------
     unsigned int instanceTranslationsVBO;
     glGenBuffers(1, &instanceTranslationsVBO);
     glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.MaxParticles, &translations[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * ParticleManager::MAX_PARTICLES, &translations[0], GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     unsigned int instanceColoursVBO;
     glGenBuffers(1, &instanceColoursVBO);
     glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * ParticleManager::MAX_PARTICLES, &colours[0], GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
@@ -152,8 +149,6 @@ int main()
     double lastTime = glfwGetTime(), timer = lastTime;
     double deltaTime = 0, nowTime = 0;
 
-    particleManager.ParticlesContainer[56].life = 0.0f;
-
     while (!glfwWindowShouldClose(window))
     {
         // Measure time
@@ -170,7 +165,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Use our shader
-        glUseProgram(programID);
+        glUseProgram(particleShader);
 
         // Send our transformation to the currently bound shader, in the "MVP" uniform
         // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
@@ -184,12 +179,12 @@ int main()
         }
 
         // Send to shader
-        if (particleManager.ParticlesCount > 0) {
+        if (particleManager.getParticlesCount() > 0) {
             glBindBuffer(GL_ARRAY_BUFFER, instanceTranslationsVBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.MaxParticles, &translations[0], GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * particleManager.getParticlesCount(), &translations[0], GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindBuffer(GL_ARRAY_BUFFER, instanceColoursVBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.MaxParticles, &colours[0], GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * particleManager.getParticlesCount(), &colours[0], GL_STATIC_DRAW);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
 
