@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-void ParticleManager::update(glm::vec2* translations, glm::vec3* colours) {
+void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colours) {
     // Simulate all particles
     particlesCount = 0;
     for (int i = 0; i < MAX_PARTICLES; i++) {
@@ -18,9 +18,9 @@ void ParticleManager::update(glm::vec2* translations, glm::vec3* colours) {
             // a = F / m /=/ m
             // v = u + at
             if (p.getWeight() > 0) {
-                p.setVelocity(p.getVelocity() + glm::vec2(0, -0.01));
+                p.setVelocity(p.getVelocity() + glm::vec2(0, -0.5) * (float) dt);
             }
-            p.setPosition(p.getPosition() + p.getVelocity());
+            p.setPosition(p.getPosition() + p.getVelocity() * (float) dt);
             //ParticlesContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
 
             // Fill the GPU buffer

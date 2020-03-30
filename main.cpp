@@ -78,7 +78,7 @@ int main()
     glm::vec2 translations[ParticleManager::MAX_PARTICLES];
     glm::vec3 colours[ParticleManager::MAX_PARTICLES];
     Component* quadGrid = new Component();
-    quadGrid->setVelocity(glm::vec2(0.001, 0));
+    quadGrid->setVelocity(glm::vec2(0.5, 0));
     int index = 0;
     float offset = 0.1f;
     for (int y = -10; y < 10; y += 2)
@@ -149,17 +149,23 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
 
-    // Timing
-    static double limitFPS = 1.0 / 60.0;
-    double lastTime = glfwGetTime(), timer = lastTime;
-    double deltaTime = 0, nowTime = 0;
+    // Time stepping
+    const double fps = 144.0;
+    const double dt = 1.0 / fps;
+    double accumulator = 0;
+    double frameStart = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
-        // Measure time
-        nowTime = glfwGetTime();
-        deltaTime += (nowTime - lastTime) / limitFPS;
-        lastTime = nowTime;
+        // Time stepping
+        const double currentTime = glfwGetTime();
+        // Store time elapsed since last frame begain
+        accumulator += currentTime - frameStart;
+        // Record starting of this frame
+        frameStart = currentTime;
+        // Avoid spiral of death and clamp dt
+        if (accumulator > 0.2)
+            accumulator = 0.2;
 
 
         // Handle exit event
@@ -176,10 +182,10 @@ int main()
         // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
 
-        // Update at 60FPS
-        while (deltaTime >= 1.0) {
+        // Update at fixed FPS -> deterministic physics
+        while (accumulator > dt) {
 
-            if ((int) nowTime % 5 == 0) {
+            if ((int) currentTime % 5 == 0) {
                 if (quadGrid != nullptr) {
                     quadGrid->releaseChildren();
                     delete quadGrid;
@@ -190,13 +196,16 @@ int main()
 
             if (quadGrid != nullptr) {
                 // Update components
-                quadGrid->update();
+                quadGrid->update(dt);
             }
 
             // Update particles
-            particleManager.update(translations, colours);
-            deltaTime--;
+            particleManager.update(dt, translations, colours);
+
+            accumulator -= dt;
         }
+
+        // TODO: linear interpolation
 
         // Send to shader
         if (particleManager.getParticlesCount() > 0) {
@@ -216,11 +225,6 @@ int main()
         // Swap buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        // - Reset after one second
-        if (glfwGetTime() - timer > 1.0) {
-            timer++;
-        }
     }
 
     glfwTerminate();

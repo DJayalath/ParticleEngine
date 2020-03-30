@@ -8,7 +8,7 @@ class ParticleManager
 public:
 	static const int MAX_PARTICLES = 3600;
 
-	void update(glm::vec2* translations, glm::vec3* colours);
+	void update(double dt, glm::vec2* translations, glm::vec3* colours);
 	Particle* getParticles();
 	int getParticlesCount();
 

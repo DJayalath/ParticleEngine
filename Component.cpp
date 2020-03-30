@@ -25,10 +25,10 @@ void Component::releaseChildren()
 	children.clear();
 }
 
-void Component::update()
+void Component::update(double dt)
 {
 	if (weight > 0) {
-		velocity += glm::vec2(0, -0.01);
+		velocity += glm::vec2(0, -0.1) * (float) dt;
 	}
-	position += velocity;
+	position += velocity * (float) dt;
 }

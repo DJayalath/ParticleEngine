@@ -11,7 +11,7 @@ public:
 
 	void addChild(Particle* p);
 	void releaseChildren();
-	void update();
+	void update(double dt);
 
 private:
 
