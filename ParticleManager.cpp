@@ -108,17 +108,9 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
 
     glm::vec2 n = B->getPosition() - A->getPosition();
 
-    // Swap y-values to correct for axis inversion
-    float tmp = a.bottomRight.y;
-    a.bottomRight.y = a.topLeft.y;
-    a.topLeft.y = tmp;
-    tmp = b.bottomRight.y;
-    b.bottomRight.y = b.topLeft.y;
-    b.topLeft.y = tmp;
-
     // Half extents
-    float a_extent = (a.bottomRight.x - a.topLeft.x) / 2;
-    float b_extent = (b.bottomRight.x - b.topLeft.x) / 2;
+    float a_extent = (a.bottomRight.x - a.topLeft.x) / 2.f;
+    float b_extent = (b.bottomRight.x - b.topLeft.x) / 2.f;
 
     // Overlap on x-axis
     float x_overlap = a_extent + b_extent - abs(n.x);
@@ -126,8 +118,8 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
     // SAT on x-axis
     if (x_overlap > 0) {
         // Half extents along y-axis
-        float a_extent = (a.bottomRight.y - a.topLeft.y) / 2;
-        float b_extent = (b.bottomRight.y - b.topLeft.y) / 2;
+        float a_extent = (a.topLeft.y - a.bottomRight.y) / 2.f;
+        float b_extent = (b.topLeft.y - b.bottomRight.y) / 2.f;
 
         // Overlap on y-axis
         float y_overlap = a_extent + b_extent - abs(n.y);
@@ -138,16 +130,19 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
             // Find out which axis is axis of least penetration
             if (x_overlap > y_overlap) {
 
+                // y-axis is axis of least penetration
+                // so normal is along y-axis
+
                 // Point towards B as n is from A to B
-                if (n.x < 0) {
-                    manifold->normal = glm::vec2(-1, 0);
+                if (n.y < 0) {
+                    manifold->normal = glm::vec2(0, -1);
                 }
                 else {
                     // MODIFIED
-                    manifold->normal = glm::vec2(1, 0);
+                    manifold->normal = glm::vec2(0, 1);
                 }
 
-                manifold->penetration = x_overlap;
+                manifold->penetration = y_overlap;
 
                 //std::cout << manifold->normal.x << std::endl;
 
@@ -156,14 +151,14 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
             }
             else {
 
-                if (n.y < 0) {
-                    manifold->normal = glm::vec2(0, -1);
+                if (n.x < 0) {
+                    manifold->normal = glm::vec2(-1, 0);
                 }
                 else {
-                    manifold->normal = glm::vec2(0, 1);
+                    manifold->normal = glm::vec2(1, 0);
                 }
 
-                manifold->penetration = y_overlap;
+                manifold->penetration = x_overlap;
 
                 //std::cout << manifold->normal.y << std::endl;
 

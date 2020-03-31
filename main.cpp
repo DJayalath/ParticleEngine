@@ -74,13 +74,13 @@ int main()
     quadGrid->setVelocity(glm::vec2(0.5, 0));
     int index = 0;
     float offset = 0.1f;
-    for (int y = -2; y < 2; y += 2)
+    for (int y = -4; y < 4; y += 2)
     {
-        for (int x = -2; x < 2; x += 2)
+        for (int x = -4; x < 4; x += 2)
         {
             glm::vec2 translation;
             translation.x = (float)x / 10.0f + offset;
-            translation.y = (float)y / 10.0f + offset;
+            translation.y = (float)y / 10.0f + offset + 0.1f;
 
             Particle& p = particleManager.getUnusedParticle();
             p.setLife(1.f);
@@ -102,7 +102,7 @@ int main()
     for (int y = -360; y <= 360; y += 15) {
         Particle& p = particleManager.getUnusedParticle();
         p.setLife(1.f);
-        p.setPosition(glm::vec2(6.35f, y / 100.f));
+        p.setPosition(glm::vec2(5.f, y / 100.f));
         p.setColour(glm::vec3(0, 1, 0));
         p.setDensity(0);
         p.setRestitution(1);

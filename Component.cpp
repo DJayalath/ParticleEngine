@@ -16,9 +16,9 @@ void Component::releaseChildren()
 		p->setVelocity(velocity + p->getVelocity());
 
 		// TEMPORARY. MAKE PARTICLES MOVE RANDOMLY BY GIVING THEM RANDOM VELOCITY.
-		//double x = ((double)rand() / (RAND_MAX));
-		//double y = ((double)rand() / (RAND_MAX));
-		//p->setVelocity(p->getVelocity() + glm::vec2(x, y));
+		double x = ((double)rand() / (RAND_MAX));
+		double y = ((double)rand() / (RAND_MAX));
+		p->setVelocity(p->getVelocity() + glm::vec2(x, y));
 		p->setDensity(0.3f);
 
 		// Remove component reference
