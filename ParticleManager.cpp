@@ -131,7 +131,7 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
             if (x_overlap > y_overlap) {
 
                 // y-axis is axis of least penetration
-                // so normal is along y-axis
+                // so normal is along y-axis (resolve along y-axis)
 
                 // Point towards B as n is from A to B
                 if (n.y < 0) {
@@ -249,8 +249,12 @@ void ParticleManager::resolvePairs()
         A->setVelocity(A->getVelocity() - A->getInvMass() * impulse);
         B->setVelocity(B->getVelocity() + B->getInvMass() * impulse);
 
-        // Also set position from penetration
-        //std::cout << "Resolved collision" << std::endl;
+        // Positional correction
+        const float percent = 0.2f; // usually 20% to 80%
+        const float slop = 0.01f; // usually 0.01 to 0.1
+        glm::vec2 correction = (std::max(m.penetration - slop, 0.0f) / (A->getInvMass() + B->getInvMass())) * percent * m.normal;
+        A->setPosition(A->getPosition() - A->getInvMass() * correction);
+        B->setPosition(B->getPosition() + B->getInvMass() * correction);
 
     }
 
