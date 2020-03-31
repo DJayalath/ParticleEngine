@@ -46,3 +46,15 @@ AABB Particle::computeAABB()
 		position + glm::vec2(0.05, -0.05),
 	};
 }
+
+void Particle::computeMass()
+{
+	if (density == 0) {
+		mass = 0;
+		invMass = 0;
+	}
+	else {
+		mass = density;
+		invMass = 1.f / density;
+	}
+}

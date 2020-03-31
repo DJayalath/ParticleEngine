@@ -63,11 +63,6 @@ void Entity::setAngle(float angle) {
 	this->angle = angle;
 }
 
-void Entity::setMass(float mass) {
-	this->mass = mass;
-	this->invMass = 1.f / mass;
-}
-
 void Entity::setInertia(float inertia)
 {
 	this->inertia = inertia;
@@ -77,6 +72,7 @@ void Entity::setInertia(float inertia)
 void Entity::setDensity(float density)
 {
 	this->density = density;
+	computeMass();
 }
 
 void Entity::setRestitution(float restitution)

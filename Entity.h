@@ -28,7 +28,6 @@ public:
 	void setVelocity(glm::vec2 velocity);
 	void applyForce(glm::vec2 force);
 	void setAngle(float angle);
-	void setMass(float mass);
 	void setInertia(float inertia);
 	void setDensity(float density);
 	void setRestitution(float restitution);
@@ -47,5 +46,7 @@ protected:
 	float invInertia = 0.f;
 	float density = 0.f;
 	float restitution = 0.f;
+
+	virtual void computeMass() = 0;
 };
 

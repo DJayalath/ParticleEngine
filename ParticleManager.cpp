@@ -5,6 +5,7 @@
 #include <iostream>
 
 void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colours) {
+    
     // Simulate all particles
     particlesCount = 0;
     for (int i = 0; i < MAX_PARTICLES; i++) {
@@ -14,7 +15,7 @@ void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colo
         if (p.getLife() > 0.0f) {
 
             if (p.getMass() > 0) {
-                p.setVelocity(p.getVelocity() + glm::vec2(0, -0.5) * (float) dt);
+                //p.setVelocity(p.getVelocity() + glm::vec2(0, -0.5) * (float) dt);
             }
 
             p.setPosition(p.getPosition() + p.getVelocity() * (float) dt);
@@ -35,6 +36,12 @@ void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colo
     }
 
     sortParticles();
+
+    // Broad phase collisions
+    broadPhaseGenPairs();
+
+    // Resolve collisions
+    resolvePairs();
 }
 
 Particle* ParticleManager::getParticles()
@@ -70,6 +77,189 @@ int ParticleManager::findUnusedParticle() {
 
 void ParticleManager::sortParticles() {
     std::sort(&particlesContainer[0], &particlesContainer[MAX_PARTICLES]);
+}
+
+bool ParticleManager::sortPairs(Manifold lhs, Manifold rhs)
+{
+    if (lhs.A < rhs.A)
+        return true;
+
+    if (lhs.A == rhs.A)
+        return lhs.B < rhs.B;
+
+    return false;
+}
+
+bool ParticleManager::AABBvsAABB(Manifold* manifold)
+{
+    Particle* A = manifold->A;
+    Particle* B = manifold->B;
+
+    AABB a = A->computeAABB();
+    AABB b = B->computeAABB();
+
+    //std::cout << "BR: " << a.bottomRight.x << " TL: " << a.topLeft.x << std::endl;
+
+    // Exit with no intersection if found separated along an axis
+    if (a.bottomRight.x < b.topLeft.x || a.topLeft.x > b.bottomRight.x) return false;
+    if (a.bottomRight.y > b.topLeft.y || a.topLeft.y < b.bottomRight.y) return false;
+
+    //std::cout << "Collision detected!" << std::endl;
+
+    glm::vec2 n = B->getPosition() - A->getPosition();
+
+    // Swap y-values to correct for axis inversion
+    float tmp = a.bottomRight.y;
+    a.bottomRight.y = a.topLeft.y;
+    a.topLeft.y = tmp;
+    tmp = b.bottomRight.y;
+    b.bottomRight.y = b.topLeft.y;
+    b.topLeft.y = tmp;
+
+    // Half extents
+    float a_extent = (a.bottomRight.x - a.topLeft.x) / 2;
+    float b_extent = (b.bottomRight.x - b.topLeft.x) / 2;
+
+    // Overlap on x-axis
+    float x_overlap = a_extent + b_extent - abs(n.x);
+
+    // SAT on x-axis
+    if (x_overlap > 0) {
+        // Half extents along y-axis
+        float a_extent = (a.bottomRight.y - a.topLeft.y) / 2;
+        float b_extent = (b.bottomRight.y - b.topLeft.y) / 2;
+
+        // Overlap on y-axis
+        float y_overlap = a_extent + b_extent - abs(n.y);
+
+        // SAT on y-axis
+        if (y_overlap > 0) {
+
+            // Find out which axis is axis of least penetration
+            if (x_overlap > y_overlap) {
+
+                // Point towards B as n is from A to B
+                if (n.x < 0) {
+                    manifold->normal = glm::vec2(-1, 0);
+                }
+                else {
+                    // MODIFIED
+                    manifold->normal = glm::vec2(1, 0);
+                }
+
+                manifold->penetration = x_overlap;
+
+                //std::cout << manifold->normal.x << std::endl;
+
+                return true;
+
+            }
+            else {
+
+                if (n.y < 0) {
+                    manifold->normal = glm::vec2(0, -1);
+                }
+                else {
+                    manifold->normal = glm::vec2(0, 1);
+                }
+
+                manifold->penetration = y_overlap;
+
+                //std::cout << manifold->normal.y << std::endl;
+
+                return true;
+
+            }
+
+        }
+    }
+
+    return false;
+
+    std::cout << "WARNING: If leak in AABBvsAABB" << std::endl;
+}
+
+void ParticleManager::broadPhaseGenPairs()
+{
+    pairs.clear();
+
+    for (int i = 0; i < particlesCount; i++) {
+
+        // Skip particles attached to components
+        if (particlesContainer[i].hasComponent())
+            continue;
+
+        for (int j = 0; j < particlesCount; j++) {
+
+            // Skip particles attached to components
+            if (particlesContainer[j].hasComponent())
+                continue;
+
+            // Skip self check
+            if (i == j)
+                continue;
+
+            AABB a = particlesContainer[i].computeAABB();
+            AABB b = particlesContainer[j].computeAABB();
+            Manifold m = Manifold{ &particlesContainer[i], &particlesContainer[j] };
+            if (AABBvsAABB(&m))
+                pairs.push_back(m);
+
+        }
+    }
+
+    // Sort to expose duplicates
+    std::sort(pairs.begin(), pairs.end(), sortPairs);
+
+    uniquePairs.clear();
+
+    int i = 0;
+    while (i < pairs.size()) {
+        Manifold* pair = &pairs.at(i);
+        uniquePairs.push_back(pairs.at(i));
+        i++;
+
+        // Skip duplicates
+        while (i < pairs.size()) {
+            Manifold* potentialDupe = &pairs.at(i);
+            if (pair->A != potentialDupe->B || pair->B != potentialDupe->A)
+                break;
+            i++;
+        }
+    }
+}
+
+void ParticleManager::resolvePairs()
+{
+    for (Manifold& m : uniquePairs) {
+
+        Particle* A = m.A;
+        Particle* B = m.B;
+
+        glm::vec2 rv = B->getVelocity() - A->getVelocity();
+
+        float velNormal = glm::dot(rv, m.normal);
+
+        // Don't resolve separating velocities
+        if (velNormal > 0)
+            return;
+
+        float e = std::min(A->getRestitution(), B->getRestitution());
+
+        float j = -(1.f + e) * velNormal;
+        j /= A->getInvMass() + B->getInvMass();
+
+        glm::vec2 impulse = j * m.normal;
+        //std::cout << m.normal.x << std::endl;
+        A->setVelocity(A->getVelocity() - A->getInvMass() * impulse);
+        B->setVelocity(B->getVelocity() + B->getInvMass() * impulse);
+
+        // Also set position from penetration
+        //std::cout << "Resolved collision" << std::endl;
+
+    }
+
+
 }
 
 Particle& ParticleManager::getUnusedParticle() {

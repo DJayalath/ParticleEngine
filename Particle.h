@@ -29,4 +29,6 @@ private:
     float life = 0.f;
 
     Component* component = nullptr;
+
+    void computeMass();
 };

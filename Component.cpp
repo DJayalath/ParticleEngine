@@ -4,18 +4,22 @@ void Component::addChild(Particle* p)
 {
 	p->setComponent(this);
 	children.push_back(p);
+	computeMass();
 }
 
 void Component::releaseChildren()
 {
 	for (Particle* p : children) {
 
-		// TEMPORARY. MAKE PARTICLES FALL BY GIVING THEM WEIGHT.
-		p->setMass(1.f);
-
 		// Update to make position and velocity independant of parent component
 		p->setPosition(position + p->getPosition());
 		p->setVelocity(velocity + p->getVelocity());
+
+		// TEMPORARY. MAKE PARTICLES MOVE RANDOMLY BY GIVING THEM RANDOM VELOCITY.
+		//double x = ((double)rand() / (RAND_MAX));
+		//double y = ((double)rand() / (RAND_MAX));
+		//p->setVelocity(p->getVelocity() + glm::vec2(x, y));
+		p->setDensity(0.3f);
 
 		// Remove component reference
 		p->removeComponent();
@@ -35,5 +39,16 @@ void Component::update(double dt)
 
 void Component::computeMass()
 {
-	mass = density * children.size();
+	if (density != 0) {
+		mass = density * children.size();
+
+		if (mass == 0)
+			invMass = 0;
+		else
+			invMass = 1.f / mass;
+	}
+	else {
+		mass = 0;
+		invMass = 0;
+	}
 }

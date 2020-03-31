@@ -74,9 +74,9 @@ int main()
     quadGrid->setVelocity(glm::vec2(0.5, 0));
     int index = 0;
     float offset = 0.1f;
-    for (int y = -10; y < 10; y += 2)
+    for (int y = -2; y < 2; y += 2)
     {
-        for (int x = -10; x < 10; x += 2)
+        for (int x = -2; x < 2; x += 2)
         {
             glm::vec2 translation;
             translation.x = (float)x / 10.0f + offset;
@@ -85,6 +85,9 @@ int main()
             Particle& p = particleManager.getUnusedParticle();
             p.setLife(1.f);
             p.setPosition(translation);
+            //p.setMass(0.3f);
+            //p.setDensity(0.3f);
+            p.setRestitution(0.8f);
             p.setColour(glm::vec3(abs(y) / 10.f, abs(x) / 10.f, 1.f));
 
             // Add particle to component
@@ -96,6 +99,14 @@ int main()
     // TEST CODE
     // Results:
     // Particles are exactly 0.1x0.1 in size in worldspace
+    for (int y = -360; y <= 360; y += 15) {
+        Particle& p = particleManager.getUnusedParticle();
+        p.setLife(1.f);
+        p.setPosition(glm::vec2(6.35f, y / 100.f));
+        p.setColour(glm::vec3(0, 1, 0));
+        p.setDensity(0);
+        p.setRestitution(1);
+    }
     //for (int x = -640; x <= 640; x += 10) {
     //    Particle& p = particleManager.getUnusedParticle();
     //    p.setLife(1.f);
