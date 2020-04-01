@@ -14,6 +14,13 @@ void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colo
 
         if (p.getLife() > 0.0f) {
 
+            // Delete particles out of scope
+            if (p.getPosition().x > 6.70f || p.getPosition().x < -6.70f ||
+                p.getPosition().y > 3.90f || p.getPosition().y < -3.90f) {
+                p.setLife(0);
+                continue;
+            }
+
             if (p.getMass() > 0) {
                 //p.setVelocity(p.getVelocity() + glm::vec2(0, -0.5) * (float) dt);
             }
@@ -42,6 +49,29 @@ void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colo
 
     // Resolve collisions
     resolvePairs();
+
+    // Generate new particles
+    {
+        if (particlesCount < 50) {
+            Particle& p = particlesContainer[findUnusedParticle()];
+            p.setLife(1.f);
+            p.setPosition(glm::vec2((rand() % 1280) / 100.f - 6.40f, 3.7f));
+            p.setVelocity(glm::vec2(0, - (rand() % 5 + 1)));
+            p.setDensity(0.3f);
+            p.setRestitution(0.8f);
+
+            // TEMPORARY
+            static const glm::vec3 colours[] = {
+                glm::vec3(1.f, 0, 0), glm::vec3(1.f, 0.5f, 0),
+                glm::vec3(1.f, 1.f, 0), glm::vec3(0, 1.f, 0),
+                glm::vec3(0, 0, 1.f), glm::vec3(0.58f, 0, 1.f),
+                glm::vec3(46.f / 256.f, 43.f / 256.f, 95 / 256.f)
+            };
+
+
+            p.setColour(colours[rand() % 7]);
+        }
+    }
 }
 
 Particle* ParticleManager::getParticles()
