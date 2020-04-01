@@ -7,6 +7,15 @@ bool Particle::operator<(Particle& that) {
 	return this->life > that.life;
 }
 
+glm::vec2 Particle::getWorldPosition()
+{
+	if (hasComponent()) {
+		return component->getPosition() + position;
+	}
+	else
+		return position;
+}
+
 glm::vec3 Particle::getColour() {
 	return colour;
 }
@@ -42,8 +51,8 @@ void Particle::removeComponent() {
 AABB Particle::computeAABB()
 {
 	return AABB {
-		position + glm::vec2(-0.05, 0.05),
-		position + glm::vec2(0.05, -0.05),
+		getWorldPosition() + glm::vec2(-0.05, 0.05),
+		getWorldPosition() + glm::vec2(0.05, -0.05),
 	};
 }
 

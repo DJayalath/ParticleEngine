@@ -8,6 +8,7 @@ class Particle : public Entity
 {
 public:
 
+    glm::vec2 getWorldPosition();
     glm::vec3 getColour();
     float getLife();
 

@@ -28,13 +28,7 @@ void ParticleManager::update(double dt, glm::vec2* translations, glm::vec3* colo
             p.setPosition(p.getPosition() + p.getVelocity() * (float) dt);
 
             // Fill the GPU buffer
-            if (p.hasComponent()) {
-                translations[particlesCount] = p.getPosition() + p.getComponent()->getPosition();
-            }
-            else {
-                translations[particlesCount] = p.getPosition();
-            }
-
+            translations[particlesCount] = p.getWorldPosition();
             colours[particlesCount] = p.getColour();
 
             particlesCount++;
@@ -136,7 +130,7 @@ bool ParticleManager::AABBvsAABB(Manifold* manifold)
 
     //std::cout << "Collision detected!" << std::endl;
 
-    glm::vec2 n = B->getPosition() - A->getPosition();
+    glm::vec2 n = B->getWorldPosition() - A->getWorldPosition();
 
     // Half extents
     float a_extent = (a.bottomRight.x - a.topLeft.x) / 2.f;
@@ -211,14 +205,14 @@ void ParticleManager::broadPhaseGenPairs()
     for (int i = 0; i < particlesCount; i++) {
 
         // Skip particles attached to components
-        if (particlesContainer[i].hasComponent())
-            continue;
+        //if (particlesContainer[i].hasComponent())
+        //    continue;
 
         for (int j = 0; j < particlesCount; j++) {
 
             // Skip particles attached to components
-            if (particlesContainer[j].hasComponent())
-                continue;
+            //if (particlesContainer[j].hasComponent())
+            //    continue;
 
             // Skip self check
             if (i == j)
@@ -227,8 +221,13 @@ void ParticleManager::broadPhaseGenPairs()
             AABB a = particlesContainer[i].computeAABB();
             AABB b = particlesContainer[j].computeAABB();
             Manifold m = Manifold{ &particlesContainer[i], &particlesContainer[j] };
-            if (AABBvsAABB(&m))
+            //if (m.A->hasComponent() || m.B->hasComponent())
+            //    std::cout << "Manifold pair has component particle" << std::endl;
+            if (AABBvsAABB(&m)) {
+                //if (m.A->hasComponent() || m.B->hasComponent())
+                //    std::cout << "Pair has component particle" << std::endl;
                 pairs.push_back(m);
+            }
 
         }
     }
@@ -260,6 +259,15 @@ void ParticleManager::resolvePairs()
 
         Particle* A = m.A;
         Particle* B = m.B;
+
+        if (A->hasComponent()) {
+            A->getComponent()->releaseChild(A);
+            //std::cout << "Child released!" << std::endl;
+        }
+        if (B->hasComponent()) {
+            B->getComponent()->releaseChild(B);
+            //std::cout << "Child released!" << std::endl;
+        }
 
         glm::vec2 rv = B->getVelocity() - A->getVelocity();
 

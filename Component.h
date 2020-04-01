@@ -13,6 +13,8 @@ public:
 	void releaseChildren();
 	void update(double dt);
 	void computeMass();
+	void releaseChild(Particle* p);
+	glm::vec2 getTopPosition();
 
 	// TODO: Override this with actual functionality
 	AABB computeAABB() { return AABB(); }

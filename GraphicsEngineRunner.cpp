@@ -12,7 +12,6 @@ void GraphicsEngineRunner::onInitialisation()
     glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
     glfwSetKeyCallback(window, keyCallback);
 
-
 	// Create and compile GLSL particle shaders
 	particleShader = ShaderLoader::LoadShaders("ParticleVS.vertexshader", "ParticleFS.fragmentshader");
 
@@ -85,13 +84,16 @@ void GraphicsEngineRunner::onInitialisation()
     // Create player
     player = new Component();
     player->setPosition(glm::vec2(0, -3.0f));
+    float spacing = 0.01f;
     for (int i = 3; i >= 0; i--) {
         for (int j = i; j >= 0; j--) {
             Particle& p = particleManager->getUnusedParticle();
             p.setLife(1.f);
             float offset = (i + 1.f) / 2.f * 0.1f;
-            p.setPosition(glm::vec2(0.1f * j - offset, -0.1f * i)); // Relative to component centre
+            p.setPosition(glm::vec2(0.1f * j - offset + spacing * j, -0.1f * i + -spacing * i)); // Relative to component centre
             p.setColour(glm::vec3(abs(i) / 3.f, abs(j) / 3.f, 1.f));
+            p.setDensity(0.5f);
+            p.setRestitution(0.5f);
             player->addChild(&p);
         }
     }
@@ -176,7 +178,7 @@ void GraphicsEngineRunner::keyCallback(GLFWwindow* window, int key, int scancode
         Particle& p = particleManager->getUnusedParticle();
         p.setLife(1.f);
         p.setColour(glm::vec3(1.f, 0, 0));
-        p.setPosition(player->getPosition() + glm::vec2(0, 0.3f));
+        p.setPosition(player->getTopPosition() + glm::vec2(0, 0.11f));
         p.setVelocity(glm::vec2(0, 2.f));
         p.setDensity(0.8f);
         p.setRestitution(0.8f);

@@ -1,4 +1,6 @@
 #include "Component.h"
+#include <algorithm> 
+#include <iostream>
 
 void Component::addChild(Particle* p)
 {
@@ -16,10 +18,10 @@ void Component::releaseChildren()
 		p->setVelocity(velocity + p->getVelocity());
 
 		// TEMPORARY. MAKE PARTICLES MOVE RANDOMLY BY GIVING THEM RANDOM VELOCITY.
-		double x = ((double)rand() / (RAND_MAX));
-		double y = ((double)rand() / (RAND_MAX));
-		p->setVelocity(p->getVelocity() + glm::vec2(x, y));
-		p->setDensity(0.3f);
+		//double x = ((double)rand() / (RAND_MAX));
+		//double y = ((double)rand() / (RAND_MAX));
+		//p->setVelocity(p->getVelocity() + glm::vec2(x, y));
+		//p->setDensity(0.3f);
 
 		// Remove component reference
 		p->removeComponent();
@@ -50,5 +52,38 @@ void Component::computeMass()
 	else {
 		mass = 0;
 		invMass = 0;
+	}
+}
+
+void Component::releaseChild(Particle* p)
+{
+	// Update to make position and velocity independant of parent component
+	p->setPosition(position + p->getPosition());
+	p->setVelocity(velocity + p->getVelocity());
+
+	// Remove component reference
+	p->removeComponent();
+
+	// Erase from vector
+	children.erase(std::find(children.begin(), children.end(), p));
+
+	if (children.empty()) {
+		std::cout << "Game over! Component has no particles left!" << std::endl;
+	}
+}
+
+bool comp(Particle* a, Particle* b)
+{
+	return (a->getPosition().y < b->getPosition().y);
+}
+
+glm::vec2 Component::getTopPosition()
+{
+	if (!children.empty()) {
+		Particle* yMaxP = *std::max_element(children.begin(), children.end(), comp);
+		return yMaxP->getWorldPosition();
+	}
+	else {
+		return getPosition();
 	}
 }
